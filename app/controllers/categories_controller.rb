@@ -1,4 +1,5 @@
 class CategoriesController < ApplicationController
+  before_action :require_admin, except: [ :index, :show ]
   def new
     @category = Category.new
   end
@@ -14,16 +15,38 @@ class CategoriesController < ApplicationController
   end
 
   def index
+    @categories = Category.paginate(page: params[:page], per_page: 2)
   end
 
   def show
     @category = Category.find(params[:id])
+    @articles = @category.articles.paginate(page: params[:page], per_page: 2)
   end
 
+  def edit
+    @category = Category.find(params[:id])
+  end
+
+  def update
+    @category = Category.find(params[:id])
+    if @category.update(category_params)
+      flash[:notice] = "it worked"
+      redirect_to @category
+    else
+      render "edit", status: :unprocessable_entity
+    end
+  end
 
   private
 
     def category_params
             params.require(:category).permit(:name)
+    end
+
+    def require_admin
+      if !(logged_in? && current_user.admin?)
+        flash[:alert] = "Only admins can perform that action"
+        redirect_to categories_path
+      end
     end
 end
